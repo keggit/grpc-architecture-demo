@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "server",
-    "client",
+    "crates/server",
+    "crates/client",
+    "ui/native/hub"
 ]
 resolver = "2"
-

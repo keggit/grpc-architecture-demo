@@ -13,6 +13,11 @@ use tokio::spawn;
 
 write_interface!();
 
+// Generated gRPC client types from `proto/helloworld.proto`.
+pub mod helloworld {
+    tonic::include_proto!("helloworld");
+}
+
 // You can go with any async library, not just `tokio`.
 #[tokio::main(flavor = "current_thread")]
 async fn main() {

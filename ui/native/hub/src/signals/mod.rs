@@ -1,4 +1,4 @@
-use rinf::{DartSignal, RustSignal, SignalPiece};
+use rinf::{DartSignal, RustSignal};
 use serde::{Deserialize, Serialize};
 
 /// To send data from Dart to Rust, use `DartSignal`.
@@ -7,19 +7,8 @@ pub struct SmallText {
     pub text: String,
 }
 
-/// To send data from Rust to Dart, use `RustSignal`.
+/// Message coming back from the gRPC server.
 #[derive(Serialize, RustSignal)]
-pub struct SmallNumber {
-    pub number: i32,
+pub struct ServerMessage {
+    pub text: String,
 }
-
-/// A signal can be nested inside another signal.
-#[derive(Serialize, RustSignal)]
-pub struct BigBool {
-    pub member: bool,
-    pub nested: SmallBool,
-}
-
-/// To nest a signal inside other signal, use `SignalPiece`.
-#[derive(Serialize, SignalPiece)]
-pub struct SmallBool(pub bool);

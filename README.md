@@ -2,6 +2,10 @@
 
 This workspace demonstrates a full-stack application using **Rust** for the backend (gRPC server) and **Flutter** for the frontend, connected via **Rinf** (Rust in Flutter).
 
+## Why
+
+Flutter is great developing cross-platform apps with beautiful UI, but fails to deliver a perfectly sane state management solution. The purpose of this complexity is to ensure that all business logic (and state management) is held in Rust where the language excels, and so that the edges are right next to the server logic, so the transition from thinking in "server" to thinking in "client" is seemless.
+
 ## 🏗️ Architecture
 
 The project is organized into a Cargo workspace with the following components:
@@ -32,7 +36,7 @@ This project follows a strict separation of concerns:
 let req = domain::MessageRequest { name: "World".to_string() };
 
 // 2. Client converts to Proto automatically
-let proto_req: proto::HelloRequest = req.into(); 
+let proto_req: proto::HelloRequest = req.into();
 
 // 3. Server receives Proto, converts back to Domain
 let domain_req: domain::MessageRequest = proto_req.into();

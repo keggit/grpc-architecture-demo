@@ -4,5 +4,5 @@
 # various Rust configurations.
 
 [workspace]
-resolver = "3"
+resolver = "2"
 members = ["native/*"]

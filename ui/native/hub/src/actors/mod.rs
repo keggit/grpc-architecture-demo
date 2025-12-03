@@ -6,10 +6,7 @@ mod first;
 
 use first::FirstActor;
 use messages::prelude::Context;
-use tokio::spawn;
-
-// Uncomment below to target the web.
-// use tokio_with_wasm::alias as tokio;
+use tokio_with_wasm::alias as tokio;
 
 /// Creates and spawns the actors in the async system.
 pub async fn create_actors() {
@@ -26,5 +23,5 @@ pub async fn create_actors() {
 
     // Spawn the actors.
     let first_actor = FirstActor::new(first_addr);
-    spawn(first_context.run(first_actor));
+    tokio::spawn(first_context.run(first_actor));
 }

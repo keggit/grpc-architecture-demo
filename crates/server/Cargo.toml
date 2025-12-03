@@ -4,9 +4,17 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tonic = { version = "0.11", features = ["transport"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-prost = "0.12"
+# 1. Add the Shared Crate
+proto = { path = "../proto" }
 
-[build-dependencies]
-tonic-build = "0.11"
+# 2. Match versions with Client (v0.12 / v0.13)
+tonic = { version = "0.12", features = ["transport", "codegen", "prost"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+prost = "0.13" # Bumped to match proto/client
+tonic-web = "0.12" # Bumped to match tonic
+
+# 3. Add CORS (You will need this for Flutter Web!)
+tower-http = { version = "0.5", features = ["cors"] }
+
+# DELETE [build-dependencies] section entirely
+# tonic-build = "..."

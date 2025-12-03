@@ -4,9 +4,19 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tonic = { version = "0.11", features = ["transport"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-prost = "0.12"
+# 1. The Shared Proto Crate (Crucial for workspace)
+proto = { path = "../proto" }
 
-[build-dependencies]
-tonic-build = "0.11"
+# 2. Core Dependencies (No features by default)
+tonic = { version = "0.12", default-features = false, features = ["codegen", "prost"] }
+prost = "0.13" # Bumped to match modern tonic
+wasm-bindgen = "0.2"
+
+# 3. Web Specific (WASM)
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tonic-web-wasm-client = "0.6"
+
+# 4. Native Specific (Android / iOS / Desktop)
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tonic = { version = "0.12", features = ["transport", "tls", "tls-native-roots"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] } 

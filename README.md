@@ -1,52 +1,82 @@
 # Rust gRPC + Flutter (Rinf)
 
-This workspace contains a minimal gRPC server and client using `tonic` with a shared protobuf in `proto/`, plus a Flutter UI that talks to the server through a Rust bridge using [Rinf].
+This workspace demonstrates a full-stack application using **Rust** for the backend (gRPC server) and **Flutter** for the frontend, connected via **Rinf** (Rust in Flutter).
 
-- server: Implements `Greeter` service with `SayHello`.
-- client: Simple Rust client that calls `SayHello` (CLI demo).
-- ui: Flutter app using Rinf; sends a name to Rust, Rust calls the gRPC server, and the server's greeting is displayed in Flutter.
+## 🏗️ Architecture
 
-## Layout
-- `proto/helloworld.proto`: Shared protobuf schema
-- `crates/server`: gRPC server binary crate
-- `crates/client`: gRPC client binary crate
-- `ui/`: Flutter app with a Rust hub (`ui/native/hub`) using Rinf
+The project is organized into a Cargo workspace with the following components:
 
-## Build
-- All Rust crates:
-  - `cargo build`
+| Component | Path | Description |
+|-----------|------|-------------|
+| **Server** | `crates/server` | A Rust gRPC server using `tonic`. Implements the `Greeter` service. |
+| **Client** | `crates/client` | A simple CLI Rust client for testing the server. |
+| **Proto** | `crates/proto` | Shared **Protobuf** definitions. Used by Server, Client, and the Flutter App. |
+| **UI** | `ui/` | The **Flutter** application. |
+| **Hub** | `ui/native/hub` | The Rust "bridge" crate that runs inside the Flutter app. It acts as a gRPC client. |
 
-## Run
-1) Start the gRPC server (from repo root):
-   - `cargo run -p server`
+---
 
-2) Run the Flutter UI (in a new terminal):
-   - `cd ui`
-   - `flutter run`
+## 🚀 Getting Started
 
-3) In the app: enter a name and press “Call gRPC: SayHello”. The server message appears in the UI.
+### 1. Run the gRPC Server
+The server must be running for the app to work.
+```bash
+# From the project root
+cargo run --bin server
+```
+*The server listens on `http://127.0.0.1:50051` by default.*
 
-### Alternate: Run the CLI client
-- `cargo run -p client -- Alice`
-  - Output: `Hello Alice`
+### 2. Run the Flutter App
 
-## Addresses and env var
-- Default server address used by the Rust hub: `http://127.0.0.1:50051`.
-- You can override it for desktop targets via environment variable:
-  - `GRPC_SERVER=http://127.0.0.1:50051 flutter run` (launched from `ui/`)
-  - Or for the CLI client: `GRPC_SERVER=http://127.0.0.1:50051 cargo run -p client -- Bob`
-- Mobile emulators/simulators handle localhost differently. For example, on Android Emulator the host machine’s localhost is `10.0.2.2`. You may need to adapt the address in code or add a UI setting to target mobile.
+#### 📱 Native (iOS / Android / macOS / Windows)
+For native platforms, Rinf automatically handles the Rust compilation.
+```bash
+cd ui
+flutter run
+```
+*Note: On Android Emulator, `localhost` is `10.0.2.2`. The code currently defaults to `127.0.0.1`, so you may need to adjust `ui/native/hub/src/lib.rs` for Android.*
 
-## Codegen
-- gRPC stubs: Generated at build time by `tonic-build` from `proto/helloworld.proto`.
-  - The Flutter app’s Rust hub (`ui/native/hub/build.rs`) also compiles the shared proto for its client.
-- Rinf signals: If you change signal structs in `ui/native/hub/src/signals/mod.rs`, regenerate the Dart bindings (from `ui/`):
-  - `cargo install rinf_cli` (once)
-  - `rinf gen`
+#### 🌐 Web (WASM)
+The Web build requires a specific build step to avoid browser compatibility issues (specifically regarding shared memory/atomics).
 
-## Rust ↔ Dart flow in the UI
-- Dart sends `SmallText { text: String }` to Rust (name input).
-- Rust `FirstActor` calls `GreeterClient::say_hello` and sends `ServerMessage { text: String }` back to Dart.
-- Flutter subscribes to `ServerMessage.rustSignalStream` and updates the UI.
+**Step 1: Build the WASM module**
+Use the provided script to build the Rust logic for the web:
+```bash
+# From the project root
+./ui/build_wasm.sh
+```
 
-[Rinf]: https://rinf.cunarist.com
+**Step 2: Run Flutter Web**
+```bash
+cd ui
+flutter run -d chrome --web-header=Cross-Origin-Opener-Policy=same-origin --web-header=Cross-Origin-Embedder-Policy=require-corp
+```
+*(The headers are required for Rinf's communication channel, even without atomics)*
+
+---
+
+## 🛠️ Development Workflow
+
+### Modifying Protobufs
+1. Edit `crates/proto/helloworld.proto`.
+2. The Rust code (`server`, `client`, `hub`) will automatically pick up changes on the next `cargo build`.
+3. **Note**: If you change the service definition, you may need to update the Rust implementation in `crates/server` and `ui/native/hub`.
+
+### Modifying Rinf Messages
+The communication between Dart and Rust (inside the app) is defined by Rinf messages.
+1. Edit `ui/native/hub/src/signals/mod.rs` (or other message files).
+2. Regenerate the Dart glue code:
+   ```bash
+   cd ui
+   rinf gen
+   ```
+3. If targeting Web, rebuild the WASM:
+   ```bash
+   ../ui/build_wasm.sh
+   ```
+
+## 🐛 Troubleshooting
+
+**"TypeError: [object Int32Array] is not a shared typed array"**
+- This happens if the WASM is built *with* atomics enabled but run in a browser environment that doesn't support them or is missing headers.
+- **Fix**: Always use `./ui/build_wasm.sh` to build for web. Do **not** use `rinf wasm` directly, as it forces atomics on.

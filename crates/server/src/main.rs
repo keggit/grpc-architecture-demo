@@ -1,13 +1,10 @@
 use std::net::SocketAddr;
-
 use tonic::{transport::Server, Request, Response, Status};
 
-pub mod helloworld {
-    tonic::include_proto!("helloworld");
-}
-
-use helloworld::greeter_server::{Greeter, GreeterServer};
-use helloworld::{HelloReply, HelloRequest};
+// IMPORT FROM CRATE
+use proto::helloworld::greeter_server::{Greeter, GreeterServer};
+use proto::helloworld::{HelloReply, HelloRequest};
+use tower_http::cors::{Any, CorsLayer};
 
 #[derive(Default)]
 struct MyGreeter;
@@ -19,6 +16,7 @@ impl Greeter for MyGreeter {
         request: Request<HelloRequest>,
     ) -> Result<Response<HelloReply>, Status> {
         let name = request.into_inner().name;
+        println!("Got a request from: {:?}", name); // Added logging to help you debug later
         let reply = HelloReply {
             message: format!("Hello {name}"),
         };
@@ -33,8 +31,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Server listening on {addr}");
 
+    let cors = CorsLayer::new()
+        .allow_origin(Any) // For dev only. In prod, lock this down!
+        .allow_headers(Any)
+        .allow_methods(Any);
+
+    // Note: You correctly added .accept_http1(true) and tonic_web::enable
+    // This is perfect for the Web support we discussed earlier.
     Server::builder()
-        .add_service(GreeterServer::new(greeter))
+        .accept_http1(true)
+        .layer(cors)
+        .add_service(tonic_web::enable(GreeterServer::new(greeter)))
         .serve(addr)
         .await?;
 

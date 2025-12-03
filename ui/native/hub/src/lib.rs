@@ -60,7 +60,7 @@ fn spawn_logic_loop() {
 
 async fn logic_loop() {
     debug_print!("RUST: Logic loop listening...");
-    let mut receiver = SmallText::get_dart_signal_receiver();
+    let receiver = SmallText::get_dart_signal_receiver();
 
     while let Some(signal) = receiver.recv().await {
         let name_from_dart = signal.message.text;

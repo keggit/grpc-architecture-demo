@@ -1,6 +1,8 @@
 use std::net::SocketAddr;
 use tonic::{transport::Server, Request, Response, Status};
 
+use domain::{Message, MessageRequest};
+
 // IMPORT FROM CRATE
 use proto::helloworld::greeter_server::{Greeter, GreeterServer};
 use proto::helloworld::{HelloReply, HelloRequest};
@@ -15,12 +17,18 @@ impl Greeter for MyGreeter {
         &self,
         request: Request<HelloRequest>,
     ) -> Result<Response<HelloReply>, Status> {
-        let name = request.into_inner().name;
-        println!("Got a request from: {:?}", name); // Added logging to help you debug later
-        let reply = HelloReply {
-            message: format!("Hello {name}"),
+        // Proto -> Domain
+        let domain_req: MessageRequest = request.into_inner().into();
+
+        println!("Got a request from: {:?}", domain_req.name);
+
+        // Logic (using domain types)
+        let domain_msg = Message {
+            text: format!("Hello {}", domain_req.name),
         };
-        Ok(Response::new(reply))
+
+        // Domain -> Proto
+        Ok(Response::new(domain_msg.into()))
     }
 }
 

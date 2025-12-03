@@ -18,6 +18,7 @@ serde = { version = "1.0", features = ["derive"] }
 send_wrapper = { version = "0.6", features = ["futures"] }
 async-trait = "0.1"
 client = { path = "../../../crates/client" }
+domain = { path = "../../../crates/domain" }
 
 # --- DELETE THE SHARED TOKIO DEPENDENCY HERE ---
 # We will define it strictly in the target blocks below.

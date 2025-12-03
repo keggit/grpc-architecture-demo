@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 # 1. Add the Shared Crate
 proto = { path = "../proto" }
+domain = { path = "../domain" }
 
 # 2. Match versions with Client (v0.12 / v0.13)
 tonic = { version = "0.12", features = ["transport", "codegen", "prost"] }

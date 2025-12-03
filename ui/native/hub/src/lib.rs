@@ -1,7 +1,8 @@
 mod signals;
 
+use client::{make_client, ClientKind, MessageApi};
 use rinf::{dart_shutdown, debug_print, write_interface, DartSignal, RustSignal};
-use signals::{ServerMessage, SmallText};
+use signals::{Message, MessageRequest};
 
 // 1. Generate the Rinf glue code
 write_interface!();
@@ -60,41 +61,49 @@ fn spawn_logic_loop() {
 
 async fn logic_loop() {
     debug_print!("RUST: Logic loop listening...");
-    let receiver = SmallText::get_dart_signal_receiver();
+    let receiver = MessageRequest::get_dart_signal_receiver();
 
     while let Some(signal) = receiver.recv().await {
-        let name_from_dart = signal.message.text;
-        debug_print!("RUST: Received '{}'", name_from_dart);
-        spawn_grpc_request(name_from_dart);
+        spawn_grpc_request(signal.message);
     }
 }
 
-fn spawn_grpc_request(name: String) {
+fn spawn_grpc_request(message_request: MessageRequest) {
     // Use localhost for Web, or 10.0.2.2 for Android Emulator
     let url = "http://localhost:50051".to_string();
 
     #[cfg(target_arch = "wasm32")]
-    wasm_bindgen_futures::spawn_local(run_request(url, name));
+    wasm_bindgen_futures::spawn_local(run_request(url, message_request));
 
     #[cfg(not(target_arch = "wasm32"))]
-    tokio::spawn(run_request(url, name));
+    tokio::spawn(run_request(url, message_request));
 }
 
-async fn run_request(url: String, name: String) {
+async fn run_request(url: String, message_request: MessageRequest) {
     debug_print!("RUST: Sending gRPC...");
-    let result = client::say_hello(url, name).await;
 
-    match result {
-        Ok(msg) => {
-            debug_print!("RUST: Success -> {}", msg);
-            ServerMessage { text: msg }.send_signal_to_dart()
-        }
+    let client_res = make_client(ClientKind::Grpc, url).await;
+
+    match client_res {
+        Ok(client) => match client.get_message(message_request.into()).await {
+            Ok(msg) => {
+                debug_print!("RUST: Success -> {}", msg.text);
+                Message::from(msg).send_signal_to_dart();
+            }
+            Err(e) => {
+                debug_print!("RUST: Error -> {:?}", e);
+                Message {
+                    text: format!("Error: {e}"),
+                }
+                .send_signal_to_dart()
+            }
+        },
         Err(e) => {
-            debug_print!("RUST: Error -> {:?}", e);
-            ServerMessage {
+            debug_print!("RUST: Client creation error -> {:?}", e);
+            Message {
                 text: format!("Error: {e}"),
             }
             .send_signal_to_dart()
         }
-    };
+    }
 }

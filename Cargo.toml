@@ -3,6 +3,7 @@ members = [
     "crates/server",
     "crates/client",
     "ui/native/hub",
-    "crates/proto"
+    "crates/proto",
+    "crates/domain"
 ]
 resolver = "2"

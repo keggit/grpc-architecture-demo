@@ -64,14 +64,14 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     // Listen for messages from Rust (gRPC response)
-    ServerMessage.rustSignalStream.listen((pack) {
+    Message.rustSignalStream.listen((pack) {
       setState(() {
         _latestMessage = pack.message.text;
       });
     });
 
     // Optionally trigger an initial request on startup
-    SmallText(text: _nameController.text).sendSignalToRust();
+    MessageRequest(name: _nameController.text).sendSignalToRust();
   }
 
   @override
@@ -131,6 +131,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _sendRequest() {
-    SmallText(text: _nameController.text.trim()).sendSignalToRust();
+    MessageRequest(name: _nameController.text.trim()).sendSignalToRust();
   }
 }

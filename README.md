@@ -8,11 +8,44 @@ The project is organized into a Cargo workspace with the following components:
 
 | Component | Path | Description |
 |-----------|------|-------------|
-| **Server** | `crates/server` | A Rust gRPC server using `tonic`. Implements the `Greeter` service. |
-| **Client** | `crates/client` | A simple CLI Rust client for testing the server. |
-| **Proto** | `crates/proto` | Shared **Protobuf** definitions. Used by Server, Client, and the Flutter App. |
+| **Domain** | `crates/domain` | **Canonical Data Models**. Pure Rust structs used by the UI and Server logic. |
+| **Proto** | `crates/proto` | **Transport Layer**. Defines Protobufs and implements `From`/`Into` conversions to Domain types. |
+| **Client** | `crates/client` | **Façade**. Exposes a clean `MessageApi` using Domain types. Hides transport details (gRPC/HTTP/WASM). |
+| **Server** | `crates/server` | A Rust gRPC server. Uses `domain` types for logic and converts to `proto` at the boundary. |
 | **UI** | `ui/` | The **Flutter** application. |
-| **Hub** | `ui/native/hub` | The Rust "bridge" crate that runs inside the Flutter app. It acts as a gRPC client. |
+| **Hub** | `ui/native/hub` | The Rust "bridge" crate. Uses `client` to fetch data and `domain` types to communicate with Dart. |
+
+## 🧠 Domain-Driven Design & Conversion
+
+This project follows a strict separation of concerns:
+
+1.  **Domain is King**: `crates/domain` contains the "truth". All business logic in the Server and UI uses these types.
+2.  **Proto is just Transport**: `crates/proto` depends on `domain`. It implements `From<Domain> for Proto` and `From<Proto> for Domain`.
+3.  **Seamless Conversion**:
+    -   **Client**: Calls `request.into()` to send proto, and `response.into()` to return domain objects.
+    -   **Server**: Calls `request.into_inner().into()` to get domain objects, and returns `response.into()` to send proto.
+
+### Example Flow
+
+```rust
+// 1. UI/Hub creates a Domain Request
+let req = domain::MessageRequest { name: "World".to_string() };
+
+// 2. Client converts to Proto automatically
+let proto_req: proto::HelloRequest = req.into(); 
+
+// 3. Server receives Proto, converts back to Domain
+let domain_req: domain::MessageRequest = proto_req.into();
+
+// 4. Server logic produces Domain Response
+let domain_msg = domain::Message { text: "Hello World".to_string() };
+
+// 5. Server converts to Proto Response
+let proto_msg: proto::HelloReply = domain_msg.into();
+
+// 6. Client receives Proto, converts back to Domain
+let result: domain::Message = proto_msg.into();
+```
 
 ---
 

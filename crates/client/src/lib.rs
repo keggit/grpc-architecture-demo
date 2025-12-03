@@ -1,27 +1,27 @@
-// Use the shared crate, don't include_proto! again
-use proto::helloworld::greeter_client::GreeterClient;
-use proto::helloworld::HelloRequest;
+pub mod api;
+mod transport;
 
-pub async fn say_hello(url: String, name: String) -> Result<String, Box<dyn std::error::Error>> {
-    // 1. WASM Transport
-    /*e proto::helloworld::HelloRequest;
-    code is inactive due to #[cfg] directives: target_arch = "wasm32" is disabledrust-analyzerinactive-code
-     */
-    #[cfg(target_arch = "wasm32")]
-    let channel = tonic_web_wasm_client::Client::new(url);
+pub use api::{ClientError, MessageApi};
 
-    // 2. Native Transport
-    #[cfg(not(target_arch = "wasm32"))]
-    let channel = tonic::transport::Endpoint::from_shared(url)?
-        .connect()
-        .await?;
+pub enum ClientKind {
+    Grpc,
+}
 
-    // 3. Unified Client Logic
-    // GreeterClient accepts either transport because both impl Service
-    let mut client = GreeterClient::new(channel);
+#[cfg(not(target_arch = "wasm32"))]
+pub trait ClientApi: MessageApi + Send + Sync {}
+#[cfg(not(target_arch = "wasm32"))]
+impl<T: MessageApi + Send + Sync> ClientApi for T {}
 
-    let request = tonic::Request::new(HelloRequest { name });
-    let response = client.say_hello(request).await?;
+#[cfg(target_arch = "wasm32")]
+pub trait ClientApi: MessageApi {}
+#[cfg(target_arch = "wasm32")]
+impl<T: MessageApi> ClientApi for T {}
 
-    Ok(response.into_inner().message)
+pub async fn make_client(
+    kind: ClientKind,
+    endpoint: String,
+) -> Result<impl ClientApi, ClientError> {
+    match kind {
+        ClientKind::Grpc => transport::grpc::GrpcClient::connect(endpoint).await,
+    }
 }
